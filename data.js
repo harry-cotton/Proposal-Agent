@@ -36,7 +36,7 @@ window.APW_DATA = {
     { label: "Opportunities extracted",  value: 7,    big: "7"     },
     { label: "Proposal drafts generated",value: 7,    big: "7"     },
     { label: "Analyst hours saved",      value: 280,  big: "~280", note: "at 40 hrs/first-pass baseline, $250/hr analyst rate" },
-    { label: "API spend to date",        value: 21,   big: "$21",  note: "Opus drafting + Haiku summarization · all nine runs" },
+    { label: "API spend to date",        value: 21,   big: "$21",  note: "Opus drafting + Haiku summarization · all seven runs" },
   ],
 
   // Discovery
@@ -76,7 +76,7 @@ window.APW_DATA = {
     { t: "02:14", agent: "evaluator",        tool: "post_draft_checks",action: "Compliance pass",   detail: "Banned-words: 0 · em-dash density: ok · PP coverage: 92% (1 gap)",   cls: "loop"   },
     { t: "02:18", agent: "bd_agent",         tool: "proposal_writer",  action: "Patch · §4.2",      detail: "Re-drafted Past-Perf §4.2 to cover gap (DTRA-IT reference)",         cls: "claude" },
     { t: "03:02", agent: "compliance_matrix",tool: "extractor",        action: "Build matrix",      detail: "47 requirements → cells with ¶ map · compliance.xlsx · 22 KB",       cls: "tool"   },
-    { t: "03:07", agent: "bd_agent",         tool: "—",                action: "Task complete",     detail: "proposal.docx (43 pp) · pp.docx (5 narratives) · compliance.xlsx",  cls: "done"   },
+    { t: "03:07", agent: "bd_agent",         tool: "—",                action: "Task complete",     detail: "proposal.docx (~22 pp) · pp.docx (5 narratives) · compliance.xlsx",  cls: "done"   },
   ],
 
   // Sample doc previews
