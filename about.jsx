@@ -66,20 +66,32 @@ const A_Counter = ({ value, prefix = "", suffix = "", duration = 1100 }) => {
   const fired = useRefA(false);
   useEffectA(() => {
     const el = ref.current; if (!el) return;
+    const animate = () => {
+      if (fired.current) return;
+      fired.current = true;
+      const t0 = performance.now();
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setN(value * eased);
+        if (p < 1) requestAnimationFrame(tick); else setN(value);
+      };
+      requestAnimationFrame(tick);
+    };
+    // If already visible on first paint, animate now.
+    const r = el.getBoundingClientRect();
+    if (r.top < (window.innerHeight || 800) && r.bottom > 0) { animate(); return; }
+    // Otherwise wait for it to scroll into view.
     const io = new IntersectionObserver((ents) => {
-      if (ents[0].isIntersecting && !fired.current) {
-        fired.current = true;
-        const t0 = performance.now();
-        const tick = (t) => {
-          const p = Math.min(1, (t - t0) / duration);
-          const eased = 1 - Math.pow(1 - p, 3);
-          setN(value * eased);
-          if (p < 1) requestAnimationFrame(tick); else setN(value);
-        };
-        requestAnimationFrame(tick);
-      }
-    }, { threshold: 0.3 });
-    io.observe(el); return () => io.disconnect();
+      if (ents.some((e) => e.isIntersecting)) animate();
+    }, { threshold: 0 });
+    io.observe(el);
+    // Safety fallback — if nothing triggers (PDF export, headless render,
+    // weird viewport), just show the final value after 1.5s.
+    const safety = setTimeout(() => {
+      if (!fired.current) { fired.current = true; setN(value); }
+    }, 1500);
+    return () => { io.disconnect(); clearTimeout(safety); };
   }, [value, duration]);
   return <span ref={ref}>{prefix}{Math.round(n).toLocaleString()}{suffix}</span>;
 };
@@ -186,7 +198,7 @@ function A_ArchDiagram() {
 function A_SampleOutputs() {
   const [open, setOpen] = useStateA(null);
   const items = [
-    { id: "proposal",   kind: ".docx", title: "Volume I — Technical proposal",  meta: "43 pp · streamed by Opus 4.6 · grounded in 4 PP refs", accent: CA.ox },
+    { id: "proposal",   kind: ".docx", title: "Volume I — Technical proposal",  meta: "~22 pp · streamed by Opus 4.6 · grounded in 5 PP refs", accent: CA.ox },
     { id: "pp",         kind: ".docx", title: "Volume III — Past performance",  meta: "5 PP narratives · evaluator-ready format",             accent: CA.gold },
     { id: "compliance", kind: ".xlsx", title: "Compliance matrix",              meta: "Requirement-by-requirement traceability · 47 rows",   accent: CA.good },
   ];
@@ -294,20 +306,20 @@ function AboutPage({ openApp }) {
             <div>
               <A_Eyebrow style={{ marginBottom: 16 }}>By {a.name} · {a.firm} (personal project)</A_Eyebrow>
               <A_Serif size={88} weight={400} style={{ letterSpacing: -1.2, lineHeight: 1.06 }}>
-                I built an agent that drafts federal RFPs in <span style={{ fontStyle: "italic", color: CA.ox }}>under four minutes</span>.
+                I built an agent that drafts a <span style={{ fontStyle: "italic", color: CA.ox }}>federal proposal volume</span> in under four minutes.
               </A_Serif>
               <div style={{ marginTop: 44, maxWidth: 800, fontSize: 19, lineHeight: 1.5, color: CA.ink2 }}>
-                Not a chat assistant — an actual tool-using, looping agent that finds federal contract opportunities, parses their requirements end-to-end, and produces a submission-ready first-pass response with built-in compliance checks. Nine production runs to date. Median cost: <i>$2.84 of compute per draft</i>. Median analyst time replaced: <i>about forty hours</i>.
+                Not a chat assistant — an actual tool-using, looping agent that finds federal contract opportunities, parses their requirements end-to-end, and produces a submission-ready first-pass response with built-in compliance checks. Seven production runs to date. Median cost: <i>$3 of compute per draft</i>. Median analyst time replaced: <i>about forty hours</i>.
               </div>
               <div style={{ marginTop: 32, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                <button onClick={openApp} style={aboutBtnPrimary}>Try the live prototype →</button>
+                <button onClick={openApp} style={aboutBtnPrimary}>Explore the prototype →</button>
                 <button onClick={() => document.getElementById("ask")?.scrollIntoView({ behavior: "smooth" })} style={aboutBtnGhost}>Read the ask</button>
                 <div style={{ flex: 1, minWidth: 20 }} />
                 <A_Mono size={11} color={CA.mute}>build 2026-05-27 · v0.1 · personal project</A_Mono>
               </div>
               <div style={{ marginTop: 18, display: "flex", alignItems: "center", gap: 10, color: CA.ink3, fontSize: 13 }}>
                 <span style={{ width: 6, height: 6, borderRadius: 3, background: CA.good }} />
-                <span><b style={{ color: CA.ink }}>Not a mockup.</b> The next three tabs run the real tool against live SAM.gov data — happy to walk through a fresh solicitation on a call.</span>
+                <span><b style={{ color: CA.ink }}>Real data, real architecture.</b> The next three tabs show real SAM.gov opportunities and a real agent run — happy to walk through a fresh solicitation end-to-end on a call.</span>
               </div>
             </div>
           </div>
@@ -317,8 +329,8 @@ function AboutPage({ openApp }) {
       {/* IMPACT NUMBERS ─────────────────────────────────── */}
       <section style={{ padding: "60px 0", borderBottom: `1px solid ${CA.rule}` }}>
         <A_Page>
-          <A_SectionHead kicker="Impact, nine runs in" kickerNumber="01"
-            title={<>Nine runs. Twenty-one dollars. <span style={{ fontStyle: "italic", color: CA.ox }}>Two hundred eighty hours.</span></>}
+          <A_SectionHead kicker="Impact, seven runs in" kickerNumber="01"
+            title={<>Seven runs. Twenty-one dollars. <span style={{ fontStyle: "italic", color: CA.ox }}>Two hundred eighty hours.</span></>}
             lead="Hours-saved is calculated against a 40-hour first-pass baseline at a $250/hour analyst rate. Each draft replaces approximately $10,000 of labor for roughly $3 of compute." />
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", marginTop: 12, borderTop: `1px solid ${CA.rule}` }}>
             {D_ABOUT.impact.map((m, i) => (
@@ -361,7 +373,7 @@ function AboutPage({ openApp }) {
             <div>
               <A_Eyebrow style={{ marginBottom: 8 }}>What this project shows</A_Eyebrow>
               <ul style={{ paddingLeft: 18, margin: 0, fontSize: 14, color: CA.ink2, lineHeight: 1.7 }}>
-                <li style={{ marginBottom: 8 }}>A real agentic system — Claude calling tools in a loop, not a single prompt — drafting a federal proposal end-to-end in under four minutes.</li>
+                <li style={{ marginBottom: 8 }}>A real agentic system — Claude calling tools in a loop, not a single prompt — drafting a federal proposal volume in under four minutes.</li>
                 <li style={{ marginBottom: 8 }}>Five of Anthropic's documented agentic patterns composed inside one shell: routing, parallelization, orchestrator-workers, evaluator-optimizer, autonomous loop.</li>
                 <li style={{ marginBottom: 8 }}>Sonnet, Opus, and Haiku each doing the part they're best at — about three dollars of compute per draft.</li>
                 <li>Architecture that gets sharply better the moment it points at real firm voice and past performance.</li>
@@ -515,9 +527,9 @@ function AboutPage({ openApp }) {
 
               <div style={{ marginTop: 48, display: "flex", gap: 12, flexWrap: "wrap" }}>
                 <button onClick={openApp} style={{ ...aboutBtnPrimary, background: CA.paperLift, color: CA.ink, borderColor: CA.paperLift }}>
-                  Try the live prototype →
+                  Explore the prototype →
                 </button>
-                <a href="mailto:harry.cotton@example.com" style={{ ...aboutBtnGhost, color: CA.paperLift, borderColor: "rgba(243,239,232,0.25)", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
+                <a href="mailto:hcotton@deloitte.com" style={{ ...aboutBtnGhost, color: CA.paperLift, borderColor: "rgba(243,239,232,0.25)", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>
                   Reach out
                 </a>
               </div>
