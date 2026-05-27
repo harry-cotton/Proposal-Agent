@@ -59,20 +59,28 @@ const W_Counter = ({ value, prefix = "", suffix = "", duration = 900 }) => {
   const fired = useRefW(false);
   useEffectW(() => {
     const el = ref.current; if (!el) return;
+    const animate = () => {
+      if (fired.current) return;
+      fired.current = true;
+      const t0 = performance.now();
+      const tick = (t) => {
+        const p = Math.min(1, (t - t0) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setN(value * eased);
+        if (p < 1) requestAnimationFrame(tick); else setN(value);
+      };
+      requestAnimationFrame(tick);
+    };
+    const r = el.getBoundingClientRect();
+    if (r.top < (window.innerHeight || 800) && r.bottom > 0) { animate(); return; }
     const io = new IntersectionObserver((ents) => {
-      if (ents[0].isIntersecting && !fired.current) {
-        fired.current = true;
-        const t0 = performance.now();
-        const tick = (t) => {
-          const p = Math.min(1, (t - t0) / duration);
-          const eased = 1 - Math.pow(1 - p, 3);
-          setN(value * eased);
-          if (p < 1) requestAnimationFrame(tick); else setN(value);
-        };
-        requestAnimationFrame(tick);
-      }
-    }, { threshold: 0.3 });
-    io.observe(el); return () => io.disconnect();
+      if (ents.some((e) => e.isIntersecting)) animate();
+    }, { threshold: 0 });
+    io.observe(el);
+    const safety = setTimeout(() => {
+      if (!fired.current) { fired.current = true; setN(value); }
+    }, 1500);
+    return () => { io.disconnect(); clearTimeout(safety); };
   }, [value, duration]);
   return <span ref={ref}>{prefix}{Math.round(n).toLocaleString()}{suffix}</span>;
 };
@@ -146,7 +154,7 @@ function DiscoveryTab({ selectOpp }) {
       }}>
         <span style={{ width: 8, height: 8, borderRadius: 4, background: KW.mint }} className="pulse-dot" />
         <W_Mono size={11.5} color={KW.text}>
-          <b style={{ color: KW.mint }}>Live tool · not a mockup.</b> These tabs run against real SAM.gov data — happy to demo a fresh solicitation end-to-end on a call.
+          <b style={{ color: KW.mint }}>Real data, real architecture.</b> The opportunities below come straight from SAM.gov; the agent run on the next tab is real captured output. Happy to demo a fresh solicitation end-to-end on a call.
         </W_Mono>
       </div>
 
@@ -467,7 +475,7 @@ function W_RunArtifacts({ tick, done }) {
   const artifacts = [
     { name: "extraction.json",       size: "18 KB",                available: tick >= 8,  type: "JSON" },
     { name: "pp_selection.json",     size: "3 KB",                 available: tick >= 9,  type: "JSON" },
-    { name: "proposal.docx",         size: "112 KB · 43 pp",       available: tick >= 12, type: "DOC" },
+    { name: "proposal.docx",         size: "~58 KB · 22 pp",        available: tick >= 12, type: "DOC" },
     { name: "pp.docx",               size: "47 KB · 5 narratives", available: tick >= 12, type: "DOC" },
     { name: "compliance.xlsx",       size: "22 KB · 47 reqs",      available: tick >= 13, type: "XLS" },
   ];
@@ -497,7 +505,7 @@ function W_RunArtifacts({ tick, done }) {
       </W_Panel>
       {done && (
         <W_Panel title="// summary" inset style={{ marginTop: 12, borderColor: KW.mint }}>
-          <W_Display size={28} weight={600} style={{ color: KW.mint, fontFamily: '"JetBrains Mono", monospace' }}>03:07 · $2.84</W_Display>
+          <W_Display size={28} weight={600} style={{ color: KW.mint, fontFamily: '"JetBrains Mono", monospace' }}>03:07 · $3</W_Display>
           <W_Mono size={11.5} color={KW.text2} style={{ display: "block", marginTop: 8, lineHeight: 1.5 }}>
             saved approximately 40 analyst hours of first-pass work.
           </W_Mono>
